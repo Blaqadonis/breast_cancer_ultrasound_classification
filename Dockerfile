@@ -1,7 +1,5 @@
 FROM python:3.9-slim 
 
-#ENV data=TRUE
-#RUN pip install tensorflow
 RUN pip install tflite-runtime
 RUN pip install numpy flask requests  pillow waitress
 
