@@ -1,13 +1,10 @@
-from flask import Flask, request, jsonify
 import requests
-import tensorflow as tf
-from tensorflow import keras
-#from tensorflow.keras.preprocessing.image import load_img
-import PIL.Image
-from tensorflow.keras.utils import load_img
+from flask import Flask, request, jsonify
 import numpy as np
+#import tensorflow.lite as tflite
 import tflite_runtime.interpreter as tflite
- 
+from PIL import Image
+from io import BytesIO
 
 app = Flask(__name__)
 
@@ -30,26 +27,36 @@ def predict_input(X):
     interpreter.invoke()
     # Getting the output of the model
     preds = interpreter.get_tensor(output_index)
-    score = dict(zip(labels, preds[0]))
-    print("Prediction: {}.".format(labels[np.argmax(score)]))
-    return labels[np.argmax(score)]
+    if preds[0][0] > preds[0][1]:
+        return {"Prediction": 'Benign'}
+    else:
+        return {"Prediction": 'Malignant'}
+   
+    
+
+def preprocess_input(x):
+    x /= 127.5
+    x -= 1.
+    return x
 
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    # Getting the image URL from the JSON payload
-    img_url = request.get_json()['url']
+    # Getting the image URL from the request
+    data = request.get_json()
+    url = data.get('img_url')
+    if not url:
+        return jsonify(error="No 'img_url' parameter provided"), 400
     # Downloading the image
-    response = requests.get(img_url).content
-    with open('img.jpg', 'wb') as handler:
-        handler.write(response)
-    img = load_img('img.jpg', target_size=(224, 224, 3))
+    response = requests.get(url)
+    img = Image.open(BytesIO(response.content))
+    img = img.resize((224, 224))
     x = np.array(img, dtype='float32')
     X = np.array([x])
-    X = tflite.keras.applications.xception.preprocess_input(X)
+    X = preprocess_input(X)
     result = predict_input(X)
     # Returning the result as a JSON object
-    return jsonify(result=result)
+    return jsonify(result)
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=9696)

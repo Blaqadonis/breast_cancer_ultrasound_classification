@@ -1,16 +1,14 @@
 import requests
-from flask import Response
+import json
 
 url = 'http://localhost:9696/predict'
+data = 'https://upload.medbullets.com/question/103329/images/breastcyst.jpg'
+img_url = {'img_url': data}
+headers = {'Content-type': 'application/json'}
+response = requests.post(url, data=json.dumps(img_url),headers=headers)
+result = response.json()
+print (result)
+#print(response.status_code) #print status response code
 
-img_url = {"url": "https://img.medscapestatic.com/pi/meds/ckb/39/15939tn.jpg"}
 
 
-#response = requests.post(url, json=img).json()
-response = requests.post(url, json = img_url).json()#, stream = True
-print(response)
-
-if response == 'Benign':
-    print("Pretty sure that's Benign Cancer")
-else:
-    print("Pretty sure that's Malignant Cancer")
